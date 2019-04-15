@@ -9,10 +9,11 @@ namespace Game
 {
     public class CreatePlayerRecordUI : MonoBehaviour
     {
+        public event EventHandler CloseButtonClicked;
         public event EventHandler<PlayerRecord> NewRecordCreated;
         public TextMeshProUGUI PlayerName;
         public List<Button> KeyboardButtons;
-        public Button ClearSymbolButton, ClearAllButton, SaveButton;
+        public Button ClearSymbolButton, ClearAllButton, SaveButton, CloseButton;
         public int Position;
         public PlayerResult Result;
 
@@ -28,14 +29,19 @@ namespace Game
 
             ClearAllButton.onClick.AddListener(() => PlayerName.text = string.Empty);
 
-            SaveButton.onClick.AddListener(() => NewRecordCreated(null,
-                new PlayerRecord()
-                {
-                    Name = string.IsNullOrWhiteSpace(PlayerName.text) ? "_" : PlayerName.text,
-                    Score = Result.Score,
-                    Date = $"{DateTime.Now.Day}.{DateTime.Now.Month}.{DateTime.Now.Year.ToString().Remove(0, 2)}",
-                    Position = Position
-                }));
+            CloseButton.onClick.AddListener(() => CloseButtonClicked?.Invoke(null, null));
+
+            SaveButton.onClick.AddListener(() =>
+            {
+                if (!string.IsNullOrWhiteSpace(PlayerName.text))
+                    NewRecordCreated?.Invoke(null, new PlayerRecord()
+                    {
+                        Name = PlayerName.text,
+                        Score = Result.Score,
+                        Date = $"{DateTime.Now.Day}.{DateTime.Now.Month}.{DateTime.Now.Year.ToString().Remove(0, 2)}",
+                        Position = Position
+                    });
+            });
         }
 
         void OnEnable()

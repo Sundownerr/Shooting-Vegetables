@@ -32,7 +32,7 @@ namespace Game
             ShootSystem.SlowMoDisabled += OnSlowMoDisabled;
         }
 
-        private void OnSlowMoDisabled(object sender, EventArgs e)
+        private void OnSlowMoDisabled(object _, EventArgs e)
         {
             BulletCamera.Priority = 1;
             BulletCamera.Follow = null;
@@ -40,7 +40,7 @@ namespace Game
             
         }
 
-        private void OnSlowMoEnabled(object sender, Transform e)
+        private void OnSlowMoEnabled(object _, Transform e)
         {
             BulletCamera.Priority = 100;
             BulletCamera.Follow = e;

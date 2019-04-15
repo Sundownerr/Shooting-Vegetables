@@ -10,7 +10,7 @@ namespace Game
     public class ShootSystem : MonoBehaviour
     {
         public event EventHandler<Transform> SlowMoEnabled;
-        public event EventHandler SlowMoDisabled, Shot;
+        public event EventHandler SlowMoDisabled, Shot, PausePressed;
         public AudioClip shootSound;
         public AudioSource audioSource;
         public GameObject Bullet;
@@ -26,16 +26,19 @@ namespace Game
             eventSystem = EventSystem.current;
             pointerEventData = new PointerEventData(eventSystem);
             audioSource.clip = shootSound;
-            
+
             canUseSlowMo = true;
         }
 
         void Start()
         {
+            UIManager.Instance.AllGamesEnded += OnGameEnded;
             UIManager.Instance.GameEnded += OnGameEnded;
+
+            GameManager.Instance.AddAudioSource(audioSource);
         }
 
-        void OnGameEnded(object sender, EventArgs e)
+        void OnGameEnded(object _, EventArgs e)
         {
             SetSlowMo(false);
 
@@ -48,12 +51,15 @@ namespace Game
         void Update()
         {
             if (GameManager.Instance.GameState != GameState.InGame) return;
+            if (GameManager.Instance.IsGamePaused) return;
 
-            if (Input.GetKeyDown(KeyCode.F3))
-                canUseSlowMo = !canUseSlowMo;
+            if (Input.GetKeyDown(KeyCode.Space)) PausePressed?.Invoke(null, null);
+            if (Input.GetKeyDown(KeyCode.F3)) canUseSlowMo = !canUseSlowMo;
 
             if (Input.GetMouseButtonDown(0))
-                if (!inSlowMo)
+                if (inSlowMo)
+                    SetSlowMo(false);
+                else
                 {
                     Shot?.Invoke(null, null);
                     ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -66,7 +72,7 @@ namespace Game
                         newBullet.transform.LookAt(hit.point);
                         bullets.Add(newBullet.GetComponent<Rigidbody>());
 
-                        if (hit.transform.gameObject.GetComponent<Target>() != null)
+                        if (hit.transform.gameObject.CompareTag("Target"))
                             SetSlowMo(true, newBullet.transform);
                     }
 
@@ -74,8 +80,6 @@ namespace Game
                     audioSource.DOPitch(inSlowMo ? UnityEngine.Random.Range(0.2f, 0.2f) : 1, 0.1f);
                     audioSource.Play();
                 }
-                else
-                    SetSlowMo(false);
 
             for (int i = 0; i < bullets.Count; i++)
                 if (bullets[i] == null || bullets[i].transform == null)
@@ -87,9 +91,12 @@ namespace Game
 
         void FixedUpdate()
         {
+            if (GameManager.Instance.GameState != GameState.InGame) return;
+            if (GameManager.Instance.IsGamePaused) return;
+
             for (int i = 0; i < bullets.Count; i++)
                 if (bullets[i] != null && bullets[i].gameObject != null)
-                    bullets[i].AddForce(ray.direction * 90, ForceMode.Impulse);
+                    bullets[i].AddForce(ray.direction * 150, ForceMode.Impulse);
         }
 
         void SetSlowMo(bool set, Transform targetTransform = null)

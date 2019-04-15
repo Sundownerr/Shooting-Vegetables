@@ -17,44 +17,61 @@ namespace Game
 
         AudioSource source;
         SphereCollider slowMoBoundary;
+        new Rigidbody rigidbody;
 
         void Start()
         {
             source = GetComponent<AudioSource>();
+            rigidbody = GetComponent<Rigidbody>();
             slowMoBoundary = transform.GetChild(0).GetComponent<SphereCollider>();
             source.volume = GameManager.Instance.SoundVolume / 2; ;
+            GameManager.Instance.AddAudioSource(source);
         }
 
         void OnCollisionEnter(Collision collision)
         {
+            if (Type == TargetType.Falling)
+                if (!collision.gameObject.CompareTag("Tree") && !collision.gameObject.CompareTag("Target"))
+                {
+                    DestroyTarget();
+                    return; 
+                }
+
             if (collision.gameObject.CompareTag("Bullet") || collision.gameObject.CompareTag("Terrain"))
-            {
-                if (collision.gameObject.CompareTag("Bullet"))
-                    Hit?.Invoke(null, this);
-
-                PlaySounds();
-                GetComponent<MeshRenderer>().enabled = false;
-                Destroy(GetComponent<SphereCollider>());
-                //Destroy(GetComponent<Rigidbody>());
-
-                Destroy(Instantiate(Destroyed, transform.position, Quaternion.identity), 5);
-                transform.position = Vector3.zero;
-
-                Destroy(gameObject, 0.7f);
-            }
+                DestroyTarget();
 
             #region Helper functions
 
             void PlaySounds()
             {
                 source.pitch = UnityEngine.Random.Range(0.8f, 1.2f);
-                source.PlayOneShot(SplashSound, GameManager.Instance.SoundVolume / 2);
+                source.PlayOneShot(SplashSound);
 
                 if (SecondSound != null)
-                    source.PlayOneShot(SecondSound, GameManager.Instance.SoundVolume / 2);
+                    source.PlayOneShot(SecondSound);
+            }
+
+            void DestroyTarget()
+            {
+                if (collision.gameObject.CompareTag("Bullet"))
+                    Hit?.Invoke(null, this);
+
+                PlaySounds();
+                GetComponent<MeshRenderer>().enabled = false;
+
+                Destroy(Instantiate(Destroyed, transform.position, Quaternion.identity), 5);
+                transform.position = -Vector3.zero * 100;
+                Destroy(gameObject, 0.7f);
+
+                GameManager.Instance.RemoveTarget(this);
             }
 
             #endregion
+        }
+
+        public void Freeze(bool freeze)
+        {
+            rigidbody.constraints = freeze ? RigidbodyConstraints.FreezeAll : RigidbodyConstraints.None;
         }
     }
 }

@@ -15,6 +15,7 @@ namespace Game
         void Awake()
         {
             defaultTargets = new List<Target>(GetComponentsInChildren<Target>());
+
             Score = 300;
         }
 
@@ -34,10 +35,14 @@ namespace Game
                 if (targets.Count > 0)
                     targets.ForEach(target =>
                     {
+                        target.Type = TargetType.Falling;
                         var rigidBody = target.GetComponent<Rigidbody>();
 
                         if (rigidBody != null)
+                        {
                             rigidBody.useGravity = true;
+                            rigidBody.AddForce(Vector3.down * 4 + UnityEngine.Random.onUnitSphere, ForceMode.Impulse);
+                        }
 
                         target.transform.SetParent(null);
                     });
@@ -48,7 +53,10 @@ namespace Game
                         var targetSystem = newTarget.GetComponent<Target>();
 
                         newTarget.SetActive(true);
-                        newTarget.GetComponent<Rigidbody>().useGravity = true;
+
+                        var rigidBody = newTarget.GetComponent<Rigidbody>();
+                        rigidBody.useGravity = true;
+                        rigidBody.AddForce(Vector3.down * 4 + UnityEngine.Random.onUnitSphere, ForceMode.Impulse);
 
                         targetSystem.Score = 300;
                         targetSystem.Type = TargetType.Falling;

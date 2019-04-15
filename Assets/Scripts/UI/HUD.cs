@@ -30,23 +30,24 @@ namespace Game
             ShootSystem.SlowMoDisabled += OnSlowMoDisabled;
         }
 
-        private void OnSlowMoDisabled(object sender, EventArgs e)
+        void OnSlowMoDisabled(object _, EventArgs e)
         {
             ReticlePrefab.gameObject.SetActive(true);
         }
 
-        private void OnSlowMoEnabled(object sender, Transform e)
+        void OnSlowMoEnabled(object _, Transform e)
         {
             ReticlePrefab.gameObject.SetActive(false);
         }
 
-        private void OnTargetHit(object sender, int e)
+        void OnTargetHit(object _, int e)
         {
             ScoreText.text = e.ToString();
         }
 
         void Update()
         {
+            if (Input.GetKeyDown(KeyCode.F1)) ReticlePrefab.gameObject.SetActive(!ReticlePrefab.gameObject.activeSelf);
             ReticlePrefab.transform.position = Input.mousePosition;
         }
 

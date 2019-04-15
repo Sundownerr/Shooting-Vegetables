@@ -44,14 +44,30 @@ namespace Game
             set
             {
                 soundVolume = value;
-                audioSource.volume = SoundVolume / 2;
+                audioSource.volume = SoundVolume / 3;
+            }
+        }
+
+        float prevTimeScale;
+        bool isGamePaused;
+        public bool IsGamePaused
+        {
+            get => isGamePaused;
+            private set
+            {
+                isGamePaused = value;
+
+                if (Time.timeScale != 0) prevTimeScale = Time.timeScale;
+                Time.timeScale = isGamePaused ? 0 : prevTimeScale;
             }
         }
 
         public const float FadeDelay = 0.3f;
-        public GameState GameState { get; private set; }
-        public event EventHandler<int> TargetHit;
 
+        public event EventHandler<int> TargetHit;
+        public event EventHandler PausePressed;
+
+        public GameState GameState { get; private set; }
         public List<PlayerResult> PlayerResults { get; private set; } = new List<PlayerResult>(4);
         public int MaxPlayers { get; private set; }
         public int CurrentPlayer { get; private set; }
@@ -63,6 +79,7 @@ namespace Game
         public List<Target> Targets;
         public ShootSystem ShootSystem;
 
+        List<AudioSource> audioSources = new List<AudioSource>();
         AudioSource audioSource;
         List<Vector3> targetsPositions = new List<Vector3>();
         List<Target> targets = new List<Target>();
@@ -70,18 +87,20 @@ namespace Game
         int hitStreak = 0;
         bool bulletFired;
 
+
         void Awake()
         {
             DontDestroyOnLoad(this);
             Instance = this;
 
             audioSource = GetComponent<AudioSource>();
+            AddAudioSource(audioSource);
 
             Targets.ForEach(target => targetsPositions.Add(target.transform.position));
 
-            difficultyPositions[(int)Difficulty.Easy] = ShootSystem.transform.position + new Vector3(2, 0, 2);
-            difficultyPositions[(int)Difficulty.Normal] = ShootSystem.transform.position + new Vector3(5, 0, 5);
-            difficultyPositions[(int)Difficulty.Hard] = ShootSystem.transform.position + new Vector3(10, 0, 10);
+            difficultyPositions[(int)Difficulty.Easy] = ShootSystem.transform.position + new Vector3(5, 0, 5);
+            difficultyPositions[(int)Difficulty.Normal] = ShootSystem.transform.position + new Vector3(9, 0, 9);
+            difficultyPositions[(int)Difficulty.Hard] = ShootSystem.transform.position + new Vector3(14, 0, 14);
 
             ShootSystem.transform.position = difficultyPositions[(int)Difficulty.Easy];
         }
@@ -93,12 +112,50 @@ namespace Game
             UIManager.Instance.GameEnded += OnGameEnded;
             UIManager.Instance.DifficultyChoosed += OnDifficultyChoosed;
             UIManager.Instance.AllGamesEnded += OnAllGamesEnded;
+            UIManager.Instance.UnPaused += OnUnPaused;
 
             ShootSystem.Shot += OnShot;
+            ShootSystem.SlowMoEnabled += OnSlowMoEnabled;
+            ShootSystem.SlowMoDisabled += OnSlowMoDisabled;
+            ShootSystem.PausePressed += OnPausePressed;
         }
 
-        void OnAllGamesEnded(object sender, EventArgs e)
+        void OnUnPaused(object _, EventArgs e) => ChangePause();
+
+        void OnPausePressed(object _, EventArgs e)
         {
+            PausePressed?.Invoke(null, null);
+            ChangePause();
+        }
+
+        void ChangePause()
+        {
+            IsGamePaused = !IsGamePaused;
+
+            audioSources.RemoveAll(src => src == null || src.gameObject == null);
+            audioSources.ForEach(src =>
+           {
+               if (IsGamePaused)
+                   src.Pause();
+               else
+                   src.UnPause();
+           });
+        }
+
+        void OnSlowMoDisabled(object _, EventArgs e)
+        {
+            targets.ForEach(target => { if (target.Type == TargetType.Falling) target.Freeze(false); });
+        }
+
+        void OnSlowMoEnabled(object _, Transform e)
+        {
+            targets.ForEach(target => { if (target.Type == TargetType.Falling) target.Freeze(true); });
+        }
+
+        void OnAllGamesEnded(object _, EventArgs e)
+        {
+            if (IsGamePaused) ChangePause();
+            GameState = GameState.InMainMenu;
             ShootSystem.transform.position = difficultyPositions[(int)Difficulty.Easy];
             MaxPlayers = 0;
             CurrentPlayer = 0;
@@ -109,15 +166,18 @@ namespace Game
             PlayerResults.Clear();
         }
 
-        void OnGameEnded(object sender, EventArgs e)
+        void OnGameEnded(object _, EventArgs e)
         {
+            if (IsGamePaused) ChangePause();
+
             PlayerAccuracy = ShotsFired > 0 ? (float)ShotsHit / (float)ShotsFired * 100f : 0;
 
             PlayerResults.Add(new PlayerResult() { Score = Score, Accuracy = (int)PlayerAccuracy });
             GameState = GameState.BetweenGames;
+
         }
 
-        void OnShot(object sender, EventArgs e)
+        void OnShot(object _, EventArgs e)
         {
             ShotsFired += 1;
 
@@ -125,9 +185,10 @@ namespace Game
                 hitStreak = 0;
             bulletFired = true;
         }
-        void OnDifficultyChoosed(object sender, Difficulty e) => GameDifficulty = e;
 
-        void OnTargetHit(object sender, Target e)
+        void OnDifficultyChoosed(object _, Difficulty e) => GameDifficulty = e;
+
+        void OnTargetHit(object _, Target e)
         {
             if (e.Type == TargetType.Falling)
             {
@@ -142,10 +203,11 @@ namespace Game
             }
 
             ShotsHit += 1;
+            targets.Remove(e);
             TargetHit?.Invoke(null, Score);
         }
 
-        void OnTreeTargetHit(object sender, TreeTarget e)
+        void OnTreeTargetHit(object _, TreeTarget e)
         {
             hitStreak = 0;
             ShotsHit += 1;
@@ -153,7 +215,7 @@ namespace Game
             TargetHit?.Invoke(null, Score);
         }
 
-        void OnGameStarted(object sender, int e)
+        void OnGameStarted(object _, int e)
         {
             ShootSystem.transform.position = difficultyPositions[(int)GameDifficulty];
 
@@ -184,9 +246,16 @@ namespace Game
             }
         }
 
-        public void AddTarget(Target target) => target.Hit += OnTargetHit;
-        public void AddTreeTarget(TreeTarget target) => target.Hit += OnTreeTargetHit;
+        public void AddTarget(Target target)
+        {
+            target.Hit += OnTargetHit;
 
+            if (!targets.Contains(target))
+                targets.Add(target);
+        }
+        public void AddTreeTarget(TreeTarget target) => target.Hit += OnTreeTargetHit;
+        public void RemoveTarget(Target target) => targets.Remove(target);
+        public void AddAudioSource(AudioSource audioSource) => audioSources.Add(audioSource);
 
     }
 }

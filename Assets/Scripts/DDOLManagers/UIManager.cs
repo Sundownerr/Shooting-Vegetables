@@ -19,7 +19,7 @@ namespace Game
             }
         }
 
-        public event EventHandler GameEnded, EndGameClicked, AllGamesEnded;
+        public event EventHandler GameEnded, EndGameClicked, AllGamesEnded, Paused, UnPaused;
         public event EventHandler<int> GameStarted;
         public event EventHandler<Difficulty> DifficultyChoosed;
         public MenuUI MainMenu;
@@ -32,6 +32,7 @@ namespace Game
         public RecordManager RecordManager;
         public CreatePlayerRecordUI PlayerRecordScreen;
         public SettingsManager SettingsManager;
+        public PauseMenuUI PauseMenu;
 
         int playersAmount;
 
@@ -56,92 +57,105 @@ namespace Game
             RecordManager.WillNotRecord += OnWillNotRecord;
             Records.CloseButtonCliked += OnRecordsClosed;
             SettingsManager.CloseButtonClicked += OnSettingsClosing;
+            PlayerRecordScreen.CloseButtonClicked += OnPlayerRecordScreenClosed;
+            GameManager.Instance.PausePressed += OnPausePressed;
+            PauseMenu.ReturnClicked += OnPauseReturnClicked;
+            PauseMenu.ExitClicked += OnPauesExitClicked;
         }
 
-        void OnSettingsClosing(object sender, EventArgs e)
+        void OnPausePressed(object _, EventArgs e)
+        {
+            PauseMenu.gameObject.SetActive(true);
+        }
+
+        void OnPauesExitClicked(object _, EventArgs e)
+        {
+            PauseMenu.gameObject.SetActive(false);
+            HUD.gameObject.SetActive(false);
+            MainMenu.gameObject.SetActive(true);
+            AllGamesEnded?.Invoke(null, null);
+        }
+
+        void OnPauseReturnClicked(object _, EventArgs e)
+        {
+            PauseMenu.gameObject.SetActive(false);
+            UnPaused?.Invoke(null, null);
+        }
+
+        void OnPlayerRecordScreenClosed(object _, EventArgs e)
+        {
+            PlayerRecordScreen.gameObject.SetActive(false);
+            MainMenu.gameObject.SetActive(true);
+        }
+
+        void OnSettingsClosing(object _, EventArgs e)
         {
             SettingsManager.gameObject.SetActive(false);
             MainMenu.gameObject.SetActive(true);
         }
 
-        void OnRecordsClosed(object sender, EventArgs e)
+        void OnRecordsClosed(object _, EventArgs e)
         {
             Records.gameObject.SetActive(false);
             MainMenu.gameObject.SetActive(true);
         }
 
-        void OnWillNotRecord(object sender, EventArgs e)
+        void OnWillNotRecord(object _, EventArgs e)
         {
             MainMenu.gameObject.SetActive(true);
             AllGamesEnded?.Invoke(null, null);
         }
 
-        void OnRecordAdded(object sender, EventArgs e)
+        void OnRecordAdded(object _, EventArgs e)
         {
             PlayerRecordScreen.gameObject.SetActive(false);
             MainMenu.gameObject.SetActive(true);
             AllGamesEnded?.Invoke(null, null);
         }
 
-        void OnContinueGameClicked(object sender, EventArgs e)
+        void OnContinueGameClicked(object _, EventArgs e)
         {
             GameEndScreen.gameObject.SetActive(false);
             StartGame();
         }
 
-        void OnNewRecord(object sender, RecordEventArgs e)
+        void OnNewRecord(object _, RecordEventArgs e)
         {
             PlayerRecordScreen.gameObject.SetActive(true);
             PlayerRecordScreen.Position = e.Position;
             PlayerRecordScreen.Result = e.Result;
         }
 
-        void OnEndGameClicked(object sender, EventArgs e)
+        void OnEndGameClicked(object _, EventArgs e)
         {
             GameEndScreen.gameObject.SetActive(false);
             EndGameClicked?.Invoke(null, null);
         }
 
-        void OnGameEnded(object sender, EventArgs e)
+        void OnGameEnded(object _, EventArgs e)
         {
-            HUD.gameObject.SetActive(false);
-
-            StartCoroutine(HUDActivationDelay());
-
-            IEnumerator HUDActivationDelay()
-            {
-                FadeManager.Instance.Fade(FadeManager.FadeMode.In);
-
-                yield return new WaitForSeconds(GameManager.FadeDelay);
-
-                GameEnded?.Invoke(null, null);
-
-                yield return new WaitForSeconds(0.5f);
-
-                FadeManager.Instance.Fade(FadeManager.FadeMode.Out);
-                GameEndScreen.gameObject.SetActive(true);
-            }
+            EndGame();
         }
 
-        void OnRecordsClicked(object sender, EventArgs e)
+        void OnRecordsClicked(object _, EventArgs e)
         {
             MainMenu.gameObject.SetActive(false);
             Records.gameObject.SetActive(true);
         }
 
-        void OnOptionsClicked(object sender, EventArgs e)
+        void OnOptionsClicked(object _, EventArgs e)
         {
             MainMenu.gameObject.SetActive(false);
             SettingsManager.gameObject.SetActive(true);
         }
 
-        void OnStartGameClicked(object sender, EventArgs e)
+        void OnStartGameClicked(object _, EventArgs e)
         {
             MainMenu.gameObject.SetActive(false);
             Difficulty.gameObject.SetActive(true);
         }
 
-        void OnDifficultyChoosed(object sender, Difficulty e)
+        void OnDifficultyChoosed(object _, Difficulty e)
         {
             Difficulty.gameObject.SetActive(false);
             ChoosePlayersUI.gameObject.SetActive(true);
@@ -149,7 +163,7 @@ namespace Game
             DifficultyChoosed?.Invoke(null, e);
         }
 
-        void OnPlayerAmountChoosed(object sender, int e)
+        void OnPlayerAmountChoosed(object _, int e)
         {
             ChoosePlayersUI.gameObject.SetActive(false);
             playersAmount = e;
@@ -178,6 +192,27 @@ namespace Game
                 HUD.gameObject.SetActive(true);
                 PrepareMessage.gameObject.SetActive(false);
 
+            }
+        }
+
+        void EndGame()
+        {
+            HUD.gameObject.SetActive(false);
+
+            StartCoroutine(HUDActivationDelay());
+
+            IEnumerator HUDActivationDelay()
+            {
+                FadeManager.Instance.Fade(FadeManager.FadeMode.In);
+
+                yield return new WaitForSeconds(GameManager.FadeDelay);
+
+                GameEnded?.Invoke(null, null);
+
+                yield return new WaitForSeconds(0.5f);
+
+                FadeManager.Instance.Fade(FadeManager.FadeMode.Out);
+                GameEndScreen.gameObject.SetActive(true);
             }
         }
     }

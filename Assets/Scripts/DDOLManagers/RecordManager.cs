@@ -37,7 +37,7 @@ namespace Game
             PlayerRecordUI.NewRecordCreated += OnNewRecordCreated;
         }
 
-        void OnNewRecordCreated(object sender, PlayerRecord e)
+        void OnNewRecordCreated(object _, PlayerRecord e)
         {
             if (e.Position > Records.List.Count && e.Position < 10)
                 Records.List.Add(e);
@@ -51,7 +51,7 @@ namespace Game
             RecordAdded?.Invoke(null, null);
         }
 
-        void OnEndGameClicked(object sender, EventArgs e)
+        void OnEndGameClicked(object _, EventArgs e)
         {
             var bestResult = GameManager.Instance.PlayerResults[0];
 
