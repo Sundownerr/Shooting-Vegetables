@@ -38,11 +38,12 @@ namespace Game
             GameManager.Instance.AddAudioSource(audioSource);
         }
 
+
         void OnGameEnded(object _, EventArgs e)
         {
             SetSlowMo(false);
 
-            bullets.ForEach(bullet => Destroy(bullet.gameObject));
+            bullets.ForEach(bullet => { if (bullet != null) Destroy(bullet.gameObject); });
             bullets.Clear();
 
             canUseSlowMo = true;

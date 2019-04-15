@@ -19,7 +19,7 @@ namespace Game
             }
         }
 
-        public event EventHandler GameEnded, EndGameClicked, AllGamesEnded, Paused, UnPaused;
+        public event EventHandler GameEnded, EndGameClicked, AllGamesEnded, Paused, UnPaused, HUDDeactivated;
         public event EventHandler<int> GameStarted;
         public event EventHandler<Difficulty> DifficultyChoosed;
         public MenuUI MainMenu;
@@ -86,6 +86,7 @@ namespace Game
         {
             PlayerRecordScreen.gameObject.SetActive(false);
             MainMenu.gameObject.SetActive(true);
+            AllGamesEnded?.Invoke(null, null);
         }
 
         void OnSettingsClosing(object _, EventArgs e)
@@ -134,6 +135,7 @@ namespace Game
 
         void OnGameEnded(object _, EventArgs e)
         {
+            HUDDeactivated?.Invoke(null, null);
             EndGame();
         }
 

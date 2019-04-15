@@ -16,7 +16,7 @@ namespace Game
         {
             defaultTargets = new List<Target>(GetComponentsInChildren<Target>());
 
-            Score = 300;
+            Score = 0;
         }
 
         void Start()

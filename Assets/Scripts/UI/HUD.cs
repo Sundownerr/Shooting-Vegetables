@@ -17,6 +17,8 @@ namespace Game
 
         WaitForSeconds delay = new WaitForSeconds(1);
         int remainingTime;
+        bool reticleDisabled;
+        bool cursorPrevState;
 
         void Awake()
         {
@@ -28,32 +30,51 @@ namespace Game
             GameManager.Instance.TargetHit += OnTargetHit;
             ShootSystem.SlowMoEnabled += OnSlowMoEnabled;
             ShootSystem.SlowMoDisabled += OnSlowMoDisabled;
+            ShootSystem.PausePressed += OnPaused;
+            UIManager.Instance.UnPaused += OnUnPaused;
+        }
+
+        void OnUnPaused(object _, EventArgs e) => Cursor.visible = !reticleDisabled;
+        void OnSlowMoEnabled(object _, Transform e)
+        {
+            ReticlePrefab.gameObject.SetActive(false);
+            Cursor.visible = false;
+        }
+        void OnTargetHit(object _, int e) => ScoreText.text = e.ToString();
+
+        void OnPaused(object _, EventArgs e)
+        {
+            cursorPrevState = Cursor.visible;
+            Cursor.visible = true;
         }
 
         void OnSlowMoDisabled(object _, EventArgs e)
         {
-            ReticlePrefab.gameObject.SetActive(true);
-        }
-
-        void OnSlowMoEnabled(object _, Transform e)
-        {
-            ReticlePrefab.gameObject.SetActive(false);
-        }
-
-        void OnTargetHit(object _, int e)
-        {
-            ScoreText.text = e.ToString();
+            if (!reticleDisabled)
+            {
+                ReticlePrefab.gameObject.SetActive(true);
+                Cursor.visible = true;
+            }
         }
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F1)) ReticlePrefab.gameObject.SetActive(!ReticlePrefab.gameObject.activeSelf);
+            if (GameManager.Instance.IsGamePaused) return;
+
+            if (Input.GetKeyDown(KeyCode.F1))
+            {
+                ReticlePrefab.gameObject.SetActive(!ReticlePrefab.gameObject.activeSelf);
+                reticleDisabled = !reticleDisabled;
+                Cursor.visible = !Cursor.visible;
+            }
+
             ReticlePrefab.transform.position = Input.mousePosition;
         }
 
         void OnDisable()
         {
             ReticlePrefab.gameObject.SetActive(false);
+            Cursor.visible = true;
         }
 
         void OnEnable()

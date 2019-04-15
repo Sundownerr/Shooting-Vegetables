@@ -61,13 +61,18 @@ namespace Game
                     bestResult = result;
             });
 
-            if (bestResult.Score > 0)
-                for (int i = 0; i < Records.List.Count; i++)
-                    if (bestResult.Score > Records.List[i].Score)
-                    {
-                        NewRecord?.Invoke(null, new RecordEventArgs() { Position = i, Result = bestResult });
-                        return;
-                    }
+            if (bestResult.Score == 0)
+            {
+                WillNotRecord?.Invoke(null, null);
+                return;
+            }
+
+            for (int i = 0; i < Records.List.Count; i++)
+                if (bestResult.Score > Records.List[i].Score)
+                {
+                    NewRecord?.Invoke(null, new RecordEventArgs() { Position = i, Result = bestResult });
+                    return;
+                }
 
             if (Records.List.Count < 10)
             {

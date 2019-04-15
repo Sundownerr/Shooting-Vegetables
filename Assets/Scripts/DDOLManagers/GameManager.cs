@@ -113,6 +113,7 @@ namespace Game
             UIManager.Instance.DifficultyChoosed += OnDifficultyChoosed;
             UIManager.Instance.AllGamesEnded += OnAllGamesEnded;
             UIManager.Instance.UnPaused += OnUnPaused;
+            UIManager.Instance.HUDDeactivated += OnHUDDeactivated;
 
             ShootSystem.Shot += OnShot;
             ShootSystem.SlowMoEnabled += OnSlowMoEnabled;
@@ -120,7 +121,15 @@ namespace Game
             ShootSystem.PausePressed += OnPausePressed;
         }
 
+        void OnHUDDeactivated(object sender, EventArgs e) => GameState = GameState.BetweenGames;
+        void OnDifficultyChoosed(object _, Difficulty e) => GameDifficulty = e;
         void OnUnPaused(object _, EventArgs e) => ChangePause();
+
+        void OnSlowMoDisabled(object _, EventArgs e) =>
+           targets.ForEach(target => { if (target.Type == TargetType.Falling) target.Freeze(false); });
+
+        void OnSlowMoEnabled(object _, Transform e) =>
+            targets.ForEach(target => { if (target.Type == TargetType.Falling) target.Freeze(true); });
 
         void OnPausePressed(object _, EventArgs e)
         {
@@ -142,19 +151,10 @@ namespace Game
            });
         }
 
-        void OnSlowMoDisabled(object _, EventArgs e)
-        {
-            targets.ForEach(target => { if (target.Type == TargetType.Falling) target.Freeze(false); });
-        }
-
-        void OnSlowMoEnabled(object _, Transform e)
-        {
-            targets.ForEach(target => { if (target.Type == TargetType.Falling) target.Freeze(true); });
-        }
-
         void OnAllGamesEnded(object _, EventArgs e)
         {
             if (IsGamePaused) ChangePause();
+
             GameState = GameState.InMainMenu;
             ShootSystem.transform.position = difficultyPositions[(int)Difficulty.Easy];
             MaxPlayers = 0;
@@ -174,7 +174,6 @@ namespace Game
 
             PlayerResults.Add(new PlayerResult() { Score = Score, Accuracy = (int)PlayerAccuracy });
             GameState = GameState.BetweenGames;
-
         }
 
         void OnShot(object _, EventArgs e)
@@ -185,8 +184,6 @@ namespace Game
                 hitStreak = 0;
             bulletFired = true;
         }
-
-        void OnDifficultyChoosed(object _, Difficulty e) => GameDifficulty = e;
 
         void OnTargetHit(object _, Target e)
         {
@@ -253,6 +250,7 @@ namespace Game
             if (!targets.Contains(target))
                 targets.Add(target);
         }
+        
         public void AddTreeTarget(TreeTarget target) => target.Hit += OnTreeTargetHit;
         public void RemoveTarget(Target target) => targets.Remove(target);
         public void AddAudioSource(AudioSource audioSource) => audioSources.Add(audioSource);
